@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Кликер</title>
+    <title>Clicker Game</title>
 
     <style>
         body {
@@ -12,15 +12,13 @@
             display: flex;
         }
 
-        /* ЛЕВЫЙ ЛИДЕРБОРД */
         .left {
-            width: 200px;
+            width: 220px;
             background: #1a1a1a;
             padding: 10px;
             height: 100vh;
         }
 
-        /* ЦЕНТР */
         .center {
             flex: 1;
             text-align: center;
@@ -40,38 +38,47 @@
 
         button {
             display: block;
-            margin: 10px auto;
+            margin: 8px auto;
             padding: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            border: none;
             width: 200px;
+            cursor: pointer;
+        }
+
+        input {
+            padding: 8px;
+            width: 180px;
         }
     </style>
 </head>
 <body>
 
-<!-- ЛИДЕРБОРД -->
+<!-- LEADERBOARD -->
 <div class="left">
-    <h2>🏆 Лидерборд</h2>
-    <p>Ты: <span id="score">0</span></p>
+    <h2>🏆 Leaderboard</h2>
+    <ol id="board"></ol>
 </div>
 
-<!-- ЦЕНТР -->
+<!-- GAME -->
 <div class="center">
 
-    <h1>Клики: <span id="count">0</span></h1>
+<h1>Клики: <span id="count">0</span></h1>
 
-    <img id="photo"
-    src="https://cdn.discordapp.com/attachments/1419778498540601525/1510988303674118184/photo_2026-05-30_18-52-54.jpg?ex=6a1ed104&is=6a1d7f84&hm=0a0d1aca972bac23879633d307e068015dbc9a6e9f63b610cd6a756b3d1e0f1b&">
+<input id="name" placeholder="Твой ник">
+<br>
+<button onclick="confirmName()">Confirm</button>
 
-    <h2>🛒 Магазин</h2>
+<br><br>
 
-    <p>Сила клика: <span id="power">1</span></p>
+<img id="photo"
+src="https://cdn.discordapp.com/attachments/1419778498540601525/1510988303674118184/photo_2026-05-30_18-52-54.jpg?ex=6a1ed104&is=6a1d7f84&hm=0a0d1aca972bac23879633d307e068015dbc9a6e9f63b610cd6a756b3d1e0f1b&">
 
-    <button onclick="buy1()">+1 клик (Цена: <span id="c1">100</span>)</button>
-    <button onclick="buy2()">+2 клика (Цена: <span id="c2">200</span>)</button>
-    <button onclick="buy5()">+5 кликов (Цена: <span id="c5">500</span>)</button>
+<h2>🛒 Магазин</h2>
+
+<p>Сила: <span id="power">1</span></p>
+
+<button onclick="buy(1,50)">+1 (50)</button>
+<button onclick="buy(2,150)">+2 (150)</button>
+<button onclick="buy(5,400)">+5 (400)</button>
 
 </div>
 
@@ -79,53 +86,79 @@
 let clicks = 0;
 let power = 1;
 
-// цены
-let c1 = 100;
-let c2 = 200;
-let c5 = 500;
+let name = "";
+let confirmed = false;
 
+let players = {};
+
+// клик
 document.getElementById("photo").onclick = function () {
+    if (!confirmed) {
+        alert("Сначала нажми Confirm!");
+        return;
+    }
+
     clicks += power;
     update();
 };
 
-function buy1() {
-    if (clicks >= c1) {
-        clicks -= c1;
-        power += 1;
-        c1 = Math.floor(c1 * 2.5);
+// confirm
+function confirmName() {
+    let input = document.getElementById("name").value.trim();
+
+    if (!input) {
+        alert("Введи ник!");
+        return;
+    }
+
+    name = input;
+    confirmed = true;
+
+    alert("Ник подтверждён: " + name);
+}
+
+// магазин
+function buy(add, cost) {
+    if (!confirmed) {
+        alert("Сначала Confirm!");
+        return;
+    }
+
+    if (clicks >= cost) {
+        clicks -= cost;
+        power += add;
         update();
+    } else {
+        alert("Не хватает кликов!");
     }
 }
 
-function buy2() {
-    if (clicks >= c2) {
-        clicks -= c2;
-        power += 2;
-        c2 = Math.floor(c2 * 2.5);
-        update();
-    }
-}
-
-function buy5() {
-    if (clicks >= c5) {
-        clicks -= c5;
-        power += 5;
-        c5 = Math.floor(c5 * 2.5);
-        update();
-    }
-}
-
+// обновление
 function update() {
-    document.getElementById("count").textContent = clicks;
-    document.getElementById("score").textContent = clicks;
-    document.getElementById("power").textContent = power;
+    document.getElementById("count").innerText = clicks;
+    document.getElementById("power").innerText = power;
 
-    document.getElementById("c1").textContent = c1;
-    document.getElementById("c2").textContent = c2;
-    document.getElementById("c5").textContent = c5;
+    if (confirmed) {
+        players[name] = clicks;
+        updateBoard();
+    }
+}
+
+// лидерборд
+function updateBoard() {
+    let board = document.getElementById("board");
+    board.innerHTML = "";
+
+    let sorted = Object.entries(players)
+        .sort((a,b)=>b[1]-a[1]);
+
+    for (let p of sorted) {
+        let li = document.createElement("li");
+        li.innerText = p[0] + " - " + p[1];
+        board.appendChild(li);
+    }
 }
 </script>
 
 </body>
-</html>
+</html
