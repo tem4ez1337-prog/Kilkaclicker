@@ -12,35 +12,32 @@
             display: flex;
         }
 
-        .left {
+        .left, .right {
             width: 220px;
             background: #1a1a1a;
             padding: 10px;
             height: 100vh;
+            overflow-y: auto;
         }
 
         .center {
             flex: 1;
             text-align: center;
-            padding-top: 30px;
+            padding-top: 20px;
+            position: relative;
         }
 
         img {
             width: 300px;
             border-radius: 20px;
             cursor: pointer;
-            transition: 0.1s;
-        }
-
-        img:active {
-            transform: scale(0.95);
         }
 
         button {
             display: block;
-            margin: 8px auto;
+            margin: 6px auto;
             padding: 10px;
-            width: 200px;
+            width: 220px;
             cursor: pointer;
         }
 
@@ -48,117 +45,231 @@
             padding: 8px;
             width: 180px;
         }
+
+        .click-effect {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-80px); }
+        }
     </style>
 </head>
 <body>
 
-<!-- LEADERBOARD -->
+<!-- LEFT -->
 <div class="left">
-    <h2>🏆 Leaderboard</h2>
-    <ol id="board"></ol>
+    <h2>🏆 Clicks</h2>
+    <ol id="boardClicks"></ol>
 </div>
 
-<!-- GAME -->
+<!-- CENTER -->
 <div class="center">
 
 <h1>Клики: <span id="count">0</span></h1>
 
 <input id="name" placeholder="Твой ник">
-<br>
-<button onclick="confirmName()">Confirm</button>
 
-<br><br>
+<br>
+
+<button id="confirmBtn" onclick="confirmName()">Confirm</button>
+<p id="confirmedText" style="display:none;">✔ Ник подтверждён</p>
+
+<br>
 
 <img id="photo"
 src="https://cdn.discordapp.com/attachments/1419778498540601525/1510988303674118184/photo_2026-05-30_18-52-54.jpg?ex=6a1ed104&is=6a1d7f84&hm=0a0d1aca972bac23879633d307e068015dbc9a6e9f63b610cd6a756b3d1e0f1b&">
 
-<h2>🛒 Магазин</h2>
+<h2>🛒 Улучшения силы</h2>
 
 <p>Сила: <span id="power">1</span></p>
 
-<button onclick="buy(1,50)">+1 (50)</button>
-<button onclick="buy(2,150)">+2 (150)</button>
-<button onclick="buy(5,400)">+5 (400)</button>
+<button onclick="buy(1)">+1 (цена: <span id="c1">50</span>)</button>
+<button onclick="buy(3)">+3 (цена: <span id="c3">120</span>)</button>
+<button onclick="buy(5)">+5 (цена: <span id="c5">200</span>)</button>
+<button onclick="buy(10)">+10 (цена: <span id="c10">500</span>)</button>
+<button onclick="buy(25)">+25 (цена: <span id="c25">1200</span>)</button>
+
+<h2>💀 Rebirth</h2>
+
+<p>Rebirths: <span id="rebirths">0</span></p>
+<p>Цена: <span id="rebirthCost">1000</span></p>
+
+<button onclick="rebirth()">REBIRTH</button>
 
 </div>
 
-<script>
-let clicks = 0;
-let power = 1;
+<!-- RIGHT -->
+<div class="right">
+    <h2>💀 Rebirths</h2>
+    <ol id="boardRebirths"></ol>
+</div>
 
-let name = "";
+<script>
+let clicks = Number(localStorage.getItem("clicks")) || 0;
+let power = Number(localStorage.getItem("power")) || 1;
+
+let costs = {
+    1: Number(localStorage.getItem("c1")) || 50,
+    3: Number(localStorage.getItem("c3")) || 120,
+    5: Number(localStorage.getItem("c5")) || 200,
+    10: Number(localStorage.getItem("c10")) || 500,
+    25: Number(localStorage.getItem("c25")) || 1200
+};
+
+let rebirths = Number(localStorage.getItem("rebirths")) || 0;
+let rebirthCost = Number(localStorage.getItem("rebirthCost")) || 1000;
+
+let name = localStorage.getItem("name") || "";
 let confirmed = false;
 
 let players = {};
 
-// клик
-document.getElementById("photo").onclick = function () {
-    if (!confirmed) {
-        alert("Сначала нажми Confirm!");
-        return;
-    }
+// 👤 auto confirm UI
+if (name !== "") {
+    confirmed = true;
+
+    setTimeout(() => {
+        document.getElementById("confirmBtn").style.display = "none";
+        document.getElementById("confirmedText").style.display = "block";
+        document.getElementById("name").value = name;
+    }, 100);
+}
+
+// 🖱️ click + effect
+document.getElementById("photo").onclick = function (e) {
+    if (!confirmed) return;
 
     clicks += power;
     update();
+
+    let fx = document.createElement("div");
+    fx.className = "click-effect";
+    fx.innerText = "+" + power;
+
+    document.body.appendChild(fx);
+
+    fx.style.left = e.pageX + "px";
+    fx.style.top = e.pageY + "px";
+
+    setTimeout(()=>fx.remove(),800);
 };
 
-// confirm
+// 👤 confirm
 function confirmName() {
     let input = document.getElementById("name").value.trim();
-
-    if (!input) {
-        alert("Введи ник!");
-        return;
-    }
+    if (!input) return;
 
     name = input;
     confirmed = true;
 
-    alert("Ник подтверждён: " + name);
+    localStorage.setItem("name", name);
+
+    document.getElementById("confirmBtn").style.display = "none";
+    document.getElementById("confirmedText").style.display = "block";
 }
 
-// магазин
-function buy(add, cost) {
-    if (!confirmed) {
-        alert("Сначала Confirm!");
+// 🛒 upgrades
+function buy(amount) {
+    if (!confirmed) return;
+
+    if (clicks >= costs[amount]) {
+        clicks -= costs[amount];
+        power += amount;
+
+        costs[amount] = Math.floor(costs[amount] * 2.5);
+
+        update();
+    }
+}
+
+// 💀 rebirth
+function rebirth() {
+    if (clicks < rebirthCost) {
+        alert("Не хватает кликов!");
         return;
     }
 
-    if (clicks >= cost) {
-        clicks -= cost;
-        power += add;
-        update();
-    } else {
-        alert("Не хватает кликов!");
-    }
+    clicks = 0;
+    power = 1;
+
+    rebirths += 1;
+    rebirthCost = Math.floor(rebirthCost * 3.5);
+
+    power = 1 + rebirths;
+
+    update();
 }
 
-// обновление
+// 🔄 update
 function update() {
     document.getElementById("count").innerText = clicks;
     document.getElementById("power").innerText = power;
 
+    document.getElementById("rebirths").innerText = rebirths;
+    document.getElementById("rebirthCost").innerText = rebirthCost;
+
+    document.getElementById("c1").innerText = costs[1];
+    document.getElementById("c3").innerText = costs[3];
+    document.getElementById("c5").innerText = costs[5];
+    document.getElementById("c10").innerText = costs[10];
+    document.getElementById("c25").innerText = costs[25];
+
+    localStorage.setItem("clicks", clicks);
+    localStorage.setItem("power", power);
+
+    localStorage.setItem("c1", costs[1]);
+    localStorage.setItem("c3", costs[3]);
+    localStorage.setItem("c5", costs[5]);
+    localStorage.setItem("c10", costs[10]);
+    localStorage.setItem("c25", costs[25]);
+
+    localStorage.setItem("rebirths", rebirths);
+    localStorage.setItem("rebirthCost", rebirthCost);
+
     if (confirmed) {
-        players[name] = clicks;
-        updateBoard();
+        players[name] = {
+            clicks: clicks,
+            rebirths: rebirths
+        };
     }
+
+    updateBoards();
 }
 
-// лидерборд
-function updateBoard() {
-    let board = document.getElementById("board");
-    board.innerHTML = "";
+// 🏆 leaderboards
+function updateBoards() {
+    let cBoard = document.getElementById("boardClicks");
+    let rBoard = document.getElementById("boardRebirths");
 
-    let sorted = Object.entries(players)
-        .sort((a,b)=>b[1]-a[1]);
+    cBoard.innerHTML = "";
+    rBoard.innerHTML = "";
 
-    for (let p of sorted) {
+    let arr = Object.entries(players);
+
+    let byClicks = [...arr].sort((a,b)=>b[1].clicks - a[1].clicks);
+    for (let p of byClicks) {
         let li = document.createElement("li");
-        li.innerText = p[0] + " - " + p[1];
-        board.appendChild(li);
+        li.innerText = p[0] + " - " + p[1].clicks;
+        cBoard.appendChild(li);
+    }
+
+    let byReb = [...arr].sort((a,b)=>b[1].rebirths - a[1].rebirths);
+    for (let p of byReb) {
+        let li = document.createElement("li");
+        li.innerText = p[0] + " - " + p[1].rebirths;
+        rBoard.appendChild(li);
     }
 }
+
+update();
 </script>
 
 </body>
-</html
+</html>
